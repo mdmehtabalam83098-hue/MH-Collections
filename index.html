@@ -4,313 +4,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MH Collection | Shop Manager</title>
-  <link rel="stylesheet" href="style.css">
+
+  <title>MH Collection | Shop Management</title>
+
+  <meta
+    name="description"
+    content="MH Collection ladies' clothing shop inventory, stock management, sales and billing system."
+  >
+
+  <meta name="theme-color" content="#74264d">
+
+  <!-- Existing stylesheet -->
+  <link rel="stylesheet" href="./style.css">
+
+  <!-- Fallback layout and editable form styling -->
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #faf7f9;
+      color: #292329;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    #app {
+      display: block;
+      width: 100%;
+      min-height: 100vh;
+      pointer-events: auto;
+    }
+
+    #mh-content,
+    #mh-page,
+    #mh-content form,
+    #mh-content label {
+      pointer-events: auto;
+    }
+
+    #mh-content input,
+    #mh-content select,
+    #mh-content textarea {
+      display: block;
+      width: 100%;
+      min-height: 42px;
+      padding: 10px;
+      margin-top: 6px;
+      border: 1px solid #b9aab2;
+      border-radius: 6px;
+      background: #fff;
+      color: #222;
+      font: inherit;
+      pointer-events: auto;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    #mh-content input:focus,
+    #mh-content select:focus,
+    #mh-content textarea:focus {
+      outline: 2px solid #74264d;
+      outline-offset: 1px;
+      border-color: #74264d;
+    }
+
+    #mh-content button {
+      min-height: 40px;
+      cursor: pointer;
+      pointer-events: auto;
+      font: inherit;
+    }
+
+    .site-footer {
+      max-width: 1100px;
+      margin: 20px auto;
+      padding: 12px 20px;
+      color: #6e6268;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    @media print {
+      .site-footer {
+        display: none;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <header class="topbar">
-    <div>
-      <h1>MH Collection</h1>
-      <p>Ladies Wear • Shop Management System</p>
-    </div>
-    <button id="printReportBtn" type="button">Print Report</button>
-  </header>
 
-  <nav class="navigation">
-    <button class="nav-btn active" data-section="dashboard">Dashboard</button>
-    <button class="nav-btn" data-section="products">Products & Stock</button>
-    <button class="nav-btn" data-section="sales">Billing & Sales</button>
-    <button class="nav-btn" data-section="expenses">Expenses</button>
-    <button class="nav-btn" data-section="reports">Reports</button>
-    <button class="nav-btn" data-section="settings">Shop Settings</button>
-  </nav>
+  <!-- JavaScript application renders here -->
+  <div id="app">
+    <noscript>
+      Please enable JavaScript in your browser to use MH Collection.
+    </noscript>
+  </div>
 
-  <main>
-    <section id="dashboard" class="section active">
-      <h2>Dashboard</h2>
-      <div class="stats-grid">
-        <article class="stat-card">
-          <span>Total Products</span>
-          <strong id="totalProducts">0</strong>
-        </article>
-        <article class="stat-card">
-          <span>Total Stock Pieces</span>
-          <strong id="totalStock">0</strong>
-        </article>
-        <article class="stat-card">
-          <span>Today's Sales</span>
-          <strong id="todaySales">₹0.00</strong>
-        </article>
-        <article class="stat-card">
-          <span>Estimated Profit Today</span>
-          <strong id="todayProfit">₹0.00</strong>
-        </article>
-      </div>
-
-      <div class="panel">
-        <h3>Low Stock Alerts</h3>
-        <div id="lowStockList"></div>
-      </div>
-
-      <div class="panel">
-        <h3>Recent Sales</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Bill No.</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody id="recentSalesBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="products" class="section">
-      <h2>Products & Stock</h2>
-      <div class="panel">
-        <h3>Add or Update Product</h3>
-        <form id="productForm" class="form-grid">
-          <input id="productId" type="hidden">
-
-          <label>Product Name
-            <input id="productName" required placeholder="e.g. Cotton Kurti">
-          </label>
-
-          <label>Category
-            <select id="productCategory">
-              <option>Kurti</option>
-              <option>Saree</option>
-              <option>Dress Material</option>
-              <option>Night Wear</option>
-              <option>Leggings</option>
-              <option>Dupatta</option>
-              <option>Other</option>
-            </select>
-          </label>
-
-          <label>Product Code / SKU
-            <input id="productSku" placeholder="Optional code">
-          </label>
-
-          <label>Size / Colour
-            <input id="productVariant" placeholder="e.g. M, Blue">
-          </label>
-
-          <label>Purchase Rate (₹)
-            <input id="purchaseRate" type="number" min="0" step="0.01" required>
-          </label>
-
-          <label>Selling Rate (₹)
-            <input id="sellingRate" type="number" min="0" step="0.01" required>
-          </label>
-
-          <label>Quantity in Stock
-            <input id="productQuantity" type="number" min="0" step="1" required>
-          </label>
-
-          <label>Low Stock Alert At
-            <input id="lowStockThreshold" type="number" min="0" value="5">
-          </label>
-
-          <div class="form-actions">
-            <button type="submit">Save Product</button>
-            <button type="reset" class="secondary">Clear Form</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="panel">
-        <h3>Product Inventory</h3>
-        <input id="productSearch" placeholder="Search product, category or code...">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Category</th>
-                <th>Size / Colour</th>
-                <th>Purchase ₹</th>
-                <th>Selling ₹</th>
-                <th>Stock</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="productsBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="sales" class="section">
-      <h2>Billing & Sales</h2>
-      <div class="panel">
-        <h3>Create Bill</h3>
-        <form id="saleForm" class="form-grid">
-          <label>Customer Name
-            <input id="customerName" placeholder="Walk-in customer">
-          </label>
-
-          <label>Customer Phone
-            <input id="customerPhone" placeholder="Optional">
-          </label>
-
-          <label>Product
-            <select id="saleProduct" required>
-              <option value="">Select a product</option>
-            </select>
-          </label>
-
-          <label>Quantity
-            <input id="saleQuantity" type="number" min="1" step="1" value="1" required>
-          </label>
-
-          <label>Discount (₹)
-            <input id="saleDiscount" type="number" min="0" step="0.01" value="0">
-          </label>
-
-          <div class="form-actions">
-            <button type="submit">Add Item to Bill</button>
-          </div>
-        </form>
-
-        <h3>Current Bill</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Rate</th>
-                <th>Amount</th>
-                <th>Remove</th>
-              </tr>
-            </thead>
-            <tbody id="cartBody"></tbody>
-          </table>
-        </div>
-
-        <div class="bill-total">
-          <p>Subtotal: <strong id="cartSubtotal">₹0.00</strong></p>
-          <p>Discount: <strong id="cartDiscount">₹0.00</strong></p>
-          <p>Grand Total: <strong id="cartGrandTotal">₹0.00</strong></p>
-        </div>
-
-        <button id="completeSaleBtn" type="button">Complete Sale & Print A4 Bill</button>
-        <button id="clearCartBtn" type="button" class="secondary">Clear Bill</button>
-      </div>
-
-      <div class="panel">
-        <h3>Sales History</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Bill No.</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Total</th>
-                <th>Profit Estimate</th>
-                <th>Bill</th>
-              </tr>
-            </thead>
-            <tbody id="salesHistoryBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="expenses" class="section">
-      <h2>Shop Expenses</h2>
-      <div class="panel">
-        <form id="expenseForm" class="form-grid">
-          <label>Expense Description
-            <input id="expenseDescription" required placeholder="e.g. Transport">
-          </label>
-
-          <label>Amount (₹)
-            <input id="expenseAmount" type="number" min="0.01" step="0.01" required>
-          </label>
-
-          <label>Date
-            <input id="expenseDate" type="date" required>
-          </label>
-
-          <div class="form-actions">
-            <button type="submit">Save Expense</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="panel">
-        <h3>Expense History</h3>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="expensesBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <section id="reports" class="section">
-      <h2>Reports</h2>
-      <div class="panel">
-        <label>Report Date
-          <input id="reportDate" type="date">
-        </label>
-        <button id="dailyReportBtn" type="button">Daily Report</button>
-        <button id="monthlyReportBtn" type="button">Current Month Report</button>
-        <button id="exportSalesBtn" type="button" class="secondary">Export Sales CSV</button>
-        <button id="exportProductsBtn" type="button" class="secondary">Export Products CSV</button>
-        <button id="backupBtn" type="button" class="secondary">Download Backup</button>
-        <label class="file-label">Restore Backup
-          <input id="restoreBackupInput" type="file" accept=".json,application/json">
-        </label>
-        <div id="reportOutput" class="report-output"></div>
-      </div>
-    </section>
-
-    <section id="settings" class="section">
-      <h2>Shop Settings</h2>
-      <div class="panel">
-        <form id="settingsForm" class="form-grid">
-          <label>Shop Name
-            <input id="shopName" required value="MH Collection">
-          </label>
-          <label>Shop Address
-            <input id="shopAddress" placeholder="Enter shop address">
-          </label>
-          <label>Phone Number
-            <input id="shopPhone" placeholder="Enter shop phone">
-          </label>
-          <label>Invoice Footer
-            <input id="invoiceFooter" value="Thank you for shopping with us!">
-          </label>
-          <div class="form-actions">
-            <button type="submit">Save Shop Details</button>
-          </div>
-        </form>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <p>MH Collection Shop Manager • Keep regular backups of your shop data.</p>
-    <p>Data is stored in this browser on this device. It does not automatically sync to your mobile.</p>
+  <footer class="site-footer">
+    MH Collection — Ladies' Clothing Shop Management
   </footer>
 
-  <script src="app.js"></script>
+  <!-- Load scripts in this exact order -->
+  <script src="./db.js"></script>
+  <script src="./billing.js"></script>
+  <script src="./app.js"></script>
+
 </body>
 </html>
