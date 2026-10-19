@@ -1,508 +1,502 @@
 
-/* MH Collection - Main Application */
+/* MH COLLECTION - Corrected app.js */
 
-(() => {
-  const root = document.getElementById("app");
+(function () {
+  "use strict";
 
-  if (!root) {
-    console.error('MH Collection requires <div id="app"></div> in index.html');
-    return;
-  }
+  function startApp() {
+    // Find the application container or create one.
+    let app = document.getElementById("app");
 
-  const money = n => "₹" + Number(n || 0).toFixed(2);
+    if (!app) {
+      app = document.createElement("div");
+      app.id = "app";
+      document.body.appendChild(app);
+    }
 
-  const escapeHTML = value =>
-    String(value ?? "").replace(/[&<>"']/g, c => ({
+    // Remove any old overlay from this application container.
+    app.replaceChildren();
+
+    const content = document.createElement("div");
+    content.id = "mh-content";
+    app.appendChild(content);
+
+    // Ensure input fields can receive keyboard and mouse interaction.
+    const style = document.createElement("style");
+    style.textContent = `
+      #app, #mh-content {
+        pointer-events: auto !important;
+        position: relative;
+        z-index: 1;
+      }
+
+      #mh-content input,
+      #mh-content select,
+      #mh-content textarea {
+        pointer-events: auto !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        opacity: 1 !important;
+        cursor: text !important;
+        position: relative;
+        z-index: 2;
+      }
+
+      #mh-content label,
+      #mh-content form {
+        pointer-events: auto !important;
+      }
+
+      #mh-content button {
+        pointer-events: auto !important;
+        cursor: pointer;
+      }
+
+      .mh-layout { max-width: 1100px; margin: auto; padding: 16px;
+        font-family: Arial, sans-serif; color: #292329; }
+      .mh-top { display:flex; justify-content:space-between;
+        align-items:center; flex-wrap:wrap; gap:12px; }
+      .mh-nav { display:flex; flex-wrap:wrap; gap:8px; margin:20px 0; }
+      .mh-layout button { padding:10px 14px; cursor:pointer;
+        border:1px solid #ccc; border-radius:6px; background:#fff; }
+      .mh-layout input, .mh-layout select {
+        display:block; width:100%; box-sizing:border-box;
+        padding:11px; margin:6px 0 14px; border:1px solid #999;
+        border-radius:5px; background:white; color:#222;
+      }
+      .mh-form { display:grid; grid-template-columns:
+        repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
+      .mh-box { border:1px solid #ddd; padding:16px;
+        border-radius:8px; margin:14px 0; background:white; }
+      .mh-table-wrap { overflow-x:auto; }
+      .mh-layout table { width:100%; border-collapse:collapse; }
+      .mh-layout th, .mh-layout td { padding:9px;
+        border:1px solid #ddd; text-align:left; }
+      .mh-active { background:#74264d !important; color:white !important; }
+      .mh-message { margin:10px 0; padding:10px; }
+    `;
+    document.head.appendChild(style);
+
+    const money = n => "₹" + Number(n || 0).toFixed(2);
+
+    const esc = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;",
       '"': "&quot;", "'": "&#39;"
-    })[c]);
+    })[ch]);
 
-  const categories = [
-    "Saree", "Kurti", "Dress", "Top",
-    "Leggings", "Salwar Suit", "Other"
-  ];
-
-  let cart = [];
-
-  root.innerHTML = `
-    <div class="mh-app">
-      <header class="mh-header">
-        <div>
-          <h1>MH Collection</h1>
-          <p>Ladies' Clothing Store Management</p>
-        </div>
-        <button id="mh-export">Export Backup</button>
-      </header>
-
-      <nav class="mh-nav">
-        <button data-page="dashboard">Dashboard</button>
-        <button data-page="products">Products & Stock</button>
-        <button data-page="billing">New Bill</button>
-        <button data-page="sales">Sales History</button>
-      </nav>
-
-      <main id="mh-content"></main>
-      <p class="mh-note">
-        Local storage is used on this device. Export backups regularly.
-      </p>
-    </div>
-  `;
-
-  // Application styling is injected here so no additional CSS file is needed.
-  const style = document.createElement("style");
-  style.textContent = `
-    .mh-app { max-width:1100px; margin:auto; padding:18px;
-      font-family:Arial,sans-serif; color:#242424; }
-    .mh-header { display:flex; justify-content:space-between;
-      align-items:center; gap:12px; flex-wrap:wrap; }
-    .mh-header h1 { margin-bottom:5px; }
-    .mh-header p,.mh-note { color:#666; }
-    .mh-nav { display:flex; flex-wrap:wrap; gap:8px;
-      margin:20px 0; }
-    .mh-app button { padding:10px 14px; cursor:pointer;
-      border:1px solid #bbb; border-radius:6px; background:#fff; }
-    .mh-app button:hover { background:#f4e8ef; }
-    .mh-app input,.mh-app select { width:100%; box-sizing:border-box;
-      padding:10px; margin:5px 0 12px; border:1px solid #bbb;
-      border-radius:5px; }
-    .mh-grid { display:grid; grid-template-columns:
-      repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
-    .mh-card,.mh-panel { border:1px solid #ddd; border-radius:8px;
-      padding:15px; margin-bottom:15px; background:#fff; }
-    .mh-card strong { display:block; font-size:24px; margin-top:8px; }
-    .mh-form { display:grid; grid-template-columns:
-      repeat(auto-fit,minmax(200px,1fr)); gap:10px; }
-    .mh-table-wrap { overflow-x:auto; }
-    .mh-app table { border-collapse:collapse; width:100%;
-      margin:12px 0; }
-    .mh-app th,.mh-app td { border:1px solid #ddd; padding:9px;
-      text-align:left; white-space:nowrap; }
-    .mh-app th { background:#f5f1f3; }
-    .mh-primary { background:#74264d !important; color:white; }
-    .mh-danger { color:#a11; }
-    .mh-total { text-align:right; font-size:20px; font-weight:bold; }
-    @media(max-width:600px) {
-      .mh-app { padding:10px; }
-      .mh-nav button { flex:1 1 40%; }
-    }
-  `;
-  document.head.appendChild(style);
-
-  const content = root.querySelector("#mh-content");
-
-  function showPage(page) {
-    root.querySelectorAll("[data-page]").forEach(button => {
-      button.classList.toggle("mh-primary", button.dataset.page === page);
-    });
-
-    if (page === "dashboard") renderDashboard();
-    if (page === "products") renderProducts();
-    if (page === "billing") renderBilling();
-    if (page === "sales") renderSales();
-  }
-
-  function renderDashboard() {
-    const summary = MHDB.getSummary();
-    const products = MHDB.getProducts();
-
-    content.innerHTML = `
-      <h2>Dashboard</h2>
-      <div class="mh-grid">
-        <div class="mh-card">Sales today
-          <strong>${money(summary.todaySales)}</strong></div>
-        <div class="mh-card">Products
-          <strong>${summary.totalProducts}</strong></div>
-        <div class="mh-card">Units in stock
-          <strong>${summary.totalStock}</strong></div>
-        <div class="mh-card">Low-stock products
-          <strong>${summary.lowStock}</strong></div>
-        <div class="mh-card">Bills recorded
-          <strong>${summary.totalBills}</strong></div>
-      </div>
-      <section class="mh-panel">
-        <h3>Low-stock alert (5 units or fewer)</h3>
-        ${products.filter(p => p.stock <= 5).length
-          ? products.filter(p => p.stock <= 5).map(p =>
-            `<p>${escapeHTML(p.name)} — ${p.stock} left</p>`
-          ).join("")
-          : "<p>No low-stock products.</p>"}
-      </section>
-    `;
-  }
-
-  function renderProducts() {
-    const products = MHDB.getProducts();
-
-    content.innerHTML = `
-      <h2>Products & Stock</h2>
-      <form id="mh-product-form" class="mh-panel">
-        <h3>Add a product</h3>
-        <div class="mh-form">
-          <label>Product name
-            <input name="name" required placeholder="e.g. Cotton Kurti">
-          </label>
-          <label>Category
-            <select name="category">
-              ${categories.map(c =>
-                `<option>${escapeHTML(c)}</option>`).join("")}
-            </select>
-          </label>
-          <label>Product code
-            <input name="code" placeholder="Optional">
-          </label>
-          <label>Purchase price (₹)
-            <input name="costPrice" type="number" min="0"
-              step="0.01" value="0">
-          </label>
-          <label>Selling price (₹)
-            <input name="sellingPrice" type="number" min="0"
-              step="0.01" required>
-          </label>
-          <label>Opening stock
-            <input name="stock" type="number" min="0"
-              step="1" value="0" required>
-          </label>
-        </div>
-        <button class="mh-primary">Save product</button>
-      </form>
-
-      <section class="mh-panel">
-        <h3>Inventory</h3>
-        <label>Search products
-          <input id="mh-product-search" placeholder="Search by name or code">
-        </label>
-        <div class="mh-table-wrap">
-          <table>
-            <thead><tr><th>Product</th><th>Category</th>
-              <th>Code</th><th>Purchase</th><th>Selling</th>
-              <th>Stock</th><th>Actions</th></tr></thead>
-            <tbody id="mh-product-rows"></tbody>
-          </table>
-        </div>
-      </section>
-    `;
-
-    const form = content.querySelector("#mh-product-form");
-
-    form.addEventListener("submit", event => {
-      event.preventDefault();
-      const data = Object.fromEntries(new FormData(form));
-
+    // Compatible with the existing db.js storage keys.
+    function getProducts() {
       try {
-        MHDB.addProduct(data);
-        renderProducts();
-      } catch (error) {
-        alert(error.message);
+        return JSON.parse(localStorage.getItem("mh_products")) || [];
+      } catch {
+        return [];
       }
-    });
-
-    const rows = content.querySelector("#mh-product-rows");
-    const search = content.querySelector("#mh-product-search");
-
-    function drawRows() {
-      const query = search.value.toLowerCase();
-      const filtered = MHDB.getProducts().filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        p.code.toLowerCase().includes(query)
-      );
-
-      rows.innerHTML = filtered.map(p => `
-        <tr>
-          <td>${escapeHTML(p.name)}</td>
-          <td>${escapeHTML(p.category)}</td>
-          <td>${escapeHTML(p.code)}</td>
-          <td>${money(p.costPrice)}</td>
-          <td>${money(p.sellingPrice)}</td>
-          <td>${p.stock}</td>
-          <td>
-            <button data-stock="${p.id}">Update stock</button>
-            <button data-price="${p.id}">Edit price</button>
-            <button data-delete="${p.id}" class="mh-danger">Delete</button>
-          </td>
-        </tr>
-      `).join("") || '<tr><td colspan="7">No products found.</td></tr>';
     }
 
-    search.addEventListener("input", drawRows);
+    function saveProducts(products) {
+      localStorage.setItem("mh_products", JSON.stringify(products));
+    }
 
-    rows.addEventListener("click", event => {
-      const button = event.target.closest("button");
-      if (!button) return;
-
-      const id = button.dataset.stock ||
-        button.dataset.price || button.dataset.delete;
-      const product = MHDB.getProducts().find(p => p.id === id);
-      if (!product) return;
-
-      if (button.dataset.stock) {
-        const value = prompt("Enter the new total stock:", product.stock);
-        if (value === null) return;
-        if (value.trim() === "" || !Number.isInteger(Number(value)) ||
-            Number(value) < 0) {
-          alert("Enter a valid non-negative whole number.");
-          return;
-        }
-        MHDB.updateProduct(id, { stock: Number(value) });
+    function getSales() {
+      try {
+        return JSON.parse(localStorage.getItem("mh_sales")) || [];
+      } catch {
+        return [];
       }
+    }
 
-      if (button.dataset.price) {
-        const value = prompt("Enter the new selling price:", product.sellingPrice);
-        if (value === null) return;
-        if (value.trim() === "" || !Number.isFinite(Number(value)) ||
-            Number(value) < 0) {
-          alert("Enter a valid price.");
-          return;
-        }
-        MHDB.updateProduct(id, { sellingPrice: Number(value) });
-      }
+    function saveSales(sales) {
+      localStorage.setItem("mh_sales", JSON.stringify(sales));
+    }
 
-      if (button.dataset.delete) {
-        if (confirm(`Delete ${product.name}?`)) {
-          MHDB.deleteProduct(id);
-        }
-      }
+    function showMessage(message) {
+      alert(message);
+    }
 
-      drawRows();
-    });
+    function render(page = "dashboard") {
+      content.innerHTML = `
+        <div class="mh-layout">
+          <header class="mh-top">
+            <div>
+              <h1>MH Collection</h1>
+              <p>Ladies' Clothing Shop Management</p>
+            </div>
+            <button id="mh-backup">Export Backup</button>
+          </header>
 
-    drawRows();
-  }
+          <nav class="mh-nav">
+            <button data-page="dashboard">Dashboard</button>
+            <button data-page="products">Products & Stock</button>
+            <button data-page="billing">New Bill</button>
+            <button data-page="sales">Sales History</button>
+          </nav>
 
-  function renderBilling() {
-    cart = [];
+          <section id="mh-page"></section>
+          <p>Remember to export backups regularly.</p>
+        </div>
+      `;
 
-    const products = MHDB.getProducts();
+      const pageRoot = content.querySelector("#mh-page");
 
-    content.innerHTML = `
-      <h2>New Bill</h2>
-      <section class="mh-panel">
-        <form id="mh-bill-form">
+      content.querySelectorAll("[data-page]").forEach(button => {
+        button.classList.toggle("mh-active", button.dataset.page === page);
+        button.addEventListener("click", () => render(button.dataset.page));
+      });
+
+      content.querySelector("#mh-backup").addEventListener("click", () => {
+        const data = {
+          products: getProducts(),
+          sales: getSales(),
+          exportedAt: new Date().toISOString()
+        };
+
+        const url = URL.createObjectURL(new Blob(
+          [JSON.stringify(data, null, 2)],
+          { type: "application/json" }
+        ));
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "mh-collection-backup.json";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      });
+
+      if (page === "dashboard") {
+        const products = getProducts();
+        const sales = getSales();
+        const today = new Date().toDateString();
+        const todaySales = sales
+          .filter(s => new Date(s.date).toDateString() === today)
+          .reduce((sum, s) => sum + Number(s.total || 0), 0);
+
+        pageRoot.innerHTML = `
+          <h2>Dashboard</h2>
           <div class="mh-form">
-            <label>Customer name
-              <input name="customerName" placeholder="Walk-in Customer">
-            </label>
-            <label>Phone number
-              <input name="customerPhone" type="tel" placeholder="Optional">
-            </label>
-            <label>Payment method
-              <select name="paymentMethod">
-                <option>Cash</option><option>UPI</option>
-                <option>Card</option><option>Other</option>
-              </select>
-            </label>
+            <div class="mh-box">Products<h2>${products.length}</h2></div>
+            <div class="mh-box">Stock units<h2>${products.reduce((n,p)=>n+Number(p.stock||0),0)}</h2></div>
+            <div class="mh-box">Low stock<h2>${products.filter(p=>p.stock<=5).length}</h2></div>
+            <div class="mh-box">Today's sales<h2>${money(todaySales)}</h2></div>
+            <div class="mh-box">Total bills<h2>${sales.length}</h2></div>
+          </div>
+          <button id="mh-open-products" class="mh-active">Add or edit products</button>
+        `;
+
+        pageRoot.querySelector("#mh-open-products").addEventListener(
+          "click", () => render("products")
+        );
+      }
+
+      if (page === "products") {
+        pageRoot.innerHTML = `
+          <h2>Products & Stock</h2>
+          <div class="mh-box">
+            <h3>Add a new product</h3>
+            <form id="mh-product-form">
+              <div class="mh-form">
+                <label>Product name
+                  <input name="name" required placeholder="Cotton Kurti">
+                </label>
+                <label>Category
+                  <select name="category">
+                    <option>Saree</option>
+                    <option>Kurti</option>
+                    <option>Dress</option>
+                    <option>Top</option>
+                    <option>Leggings</option>
+                    <option>Salwar Suit</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+                <label>Product code
+                  <input name="code" placeholder="Optional">
+                </label>
+                <label>Purchase price (₹)
+                  <input name="costPrice" type="number" min="0"
+                    step="0.01" value="0" required>
+                </label>
+                <label>Selling price (₹)
+                  <input name="sellingPrice" type="number" min="0"
+                    step="0.01" required>
+                </label>
+                <label>Stock quantity
+                  <input name="stock" type="number" min="0"
+                    step="1" value="0" required>
+                </label>
+              </div>
+              <button type="submit" class="mh-active">Save product</button>
+            </form>
           </div>
 
-          <h3>Add items</h3>
-          <label>Product
-            <select id="mh-cart-product">
-              ${products.filter(p => p.stock > 0).map(p =>
-                `<option value="${p.id}">
-                  ${escapeHTML(p.name)} — ${money(p.sellingPrice)}
-                  (stock ${p.stock})
-                </option>`).join("")}
-            </select>
-          </label>
-          <label>Quantity
-            <input id="mh-cart-quantity" type="number" min="1" value="1">
-          </label>
-          <button type="button" id="mh-add-item">Add to bill</button>
-
-          <div class="mh-table-wrap">
-            <table>
-              <thead><tr><th>Product</th><th>Qty</th>
-                <th>Rate</th><th>Amount</th><th>Action</th></tr></thead>
-              <tbody id="mh-cart-rows"></tbody>
-            </table>
+          <div class="mh-box">
+            <h3>Current inventory</h3>
+            <label>Search
+              <input id="mh-search" placeholder="Search product name or code">
+            </label>
+            <div class="mh-table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Category</th>
+                  <th>Purchase</th><th>Selling</th><th>Stock</th>
+                  <th>Actions</th></tr></thead>
+                <tbody id="mh-products-list"></tbody>
+              </table>
+            </div>
           </div>
+        `;
 
-          <label>Discount (₹)
-            <input id="mh-discount" type="number" min="0" value="0" step="0.01">
-          </label>
-          <p id="mh-bill-total" class="mh-total">Total: ₹0.00</p>
-          <button class="mh-primary">Save bill and print A4 invoice</button>
-        </form>
-      </section>
-    `;
+        const form = pageRoot.querySelector("#mh-product-form");
 
-    const form = content.querySelector("#mh-bill-form");
-    const rows = content.querySelector("#mh-cart-rows");
-    const discountInput = content.querySelector("#mh-discount");
+        form.addEventListener("submit", event => {
+          event.preventDefault();
 
-    function drawCart() {
-      rows.innerHTML = cart.map((item, index) => `
-        <tr>
-          <td>${escapeHTML(item.name)}</td>
-          <td>${item.quantity}</td>
-          <td>${money(item.price)}</td>
-          <td>${money(item.quantity * item.price)}</td>
-          <td><button type="button" data-remove="${index}">Remove</button></td>
-        </tr>
-      `).join("");
+          const data = Object.fromEntries(new FormData(form));
+          const name = data.name.trim();
+          const stock = Number(data.stock);
+          const cost = Number(data.costPrice);
+          const price = Number(data.sellingPrice);
 
-      const subtotal = cart.reduce(
-        (sum, item) => sum + item.quantity * item.price, 0
-      );
-      const discount = Number(discountInput.value) || 0;
+          if (!name) return showMessage("Enter a product name.");
+          if (!Number.isInteger(stock) || stock < 0) {
+            return showMessage("Stock must be a non-negative whole number.");
+          }
+          if (![cost, price].every(n => Number.isFinite(n) && n >= 0)) {
+            return showMessage("Enter valid prices.");
+          }
 
-      content.querySelector("#mh-bill-total").textContent =
-        "Total: " + money(Math.max(0, subtotal - discount));
-    }
+          const products = getProducts();
 
-    content.querySelector("#mh-add-item").addEventListener("click", () => {
-      const id = content.querySelector("#mh-cart-product").value;
-      const quantity = Number(
-        content.querySelector("#mh-cart-quantity").value
-      );
-      const product = MHDB.getProducts().find(p => p.id === id);
+          products.push({
+            id: crypto.randomUUID(),
+            name,
+            category: data.category,
+            code: data.code.trim(),
+            costPrice: cost,
+            sellingPrice: price,
+            stock,
+            createdAt: new Date().toISOString()
+          });
 
-      if (!product) {
-        alert("Add a product to inventory first.");
-        return;
-      }
-
-      if (!Number.isInteger(quantity) || quantity < 1) {
-        alert("Enter a valid quantity.");
-        return;
-      }
-
-      const existing = cart.find(item => item.productId === id);
-      const alreadyAdded = existing ? existing.quantity : 0;
-
-      if (quantity + alreadyAdded > product.stock) {
-        alert(`Available stock: ${product.stock}`);
-        return;
-      }
-
-      if (existing) {
-        existing.quantity += quantity;
-      } else {
-        cart.push({
-          productId: id,
-          name: product.name,
-          price: product.sellingPrice,
-          quantity
-        });
-      }
-
-      drawCart();
-    });
-
-    rows.addEventListener("click", event => {
-      const button = event.target.closest("[data-remove]");
-      if (!button) return;
-      cart.splice(Number(button.dataset.remove), 1);
-      drawCart();
-    });
-
-    discountInput.addEventListener("input", drawCart);
-
-    form.addEventListener("submit", event => {
-      event.preventDefault();
-
-      if (!cart.length) {
-        alert("Add at least one product.");
-        return;
-      }
-
-      const data = Object.fromEntries(new FormData(form));
-
-      try {
-        // Open a print window before saving the bill, where possible.
-        const invoice = MHBilling.createInvoice({
-          customerName: data.customerName.trim() || "Walk-in Customer",
-          customerPhone: data.customerPhone.trim(),
-          paymentMethod: data.paymentMethod,
-          items: cart,
-          discount: Number(discountInput.value) || 0
+          try {
+            saveProducts(products);
+            render("products");
+            showMessage("Product saved successfully.");
+          } catch (error) {
+            showMessage("Could not save product. Check browser storage settings.");
+          }
         });
 
-        alert("Bill saved. Your invoice is ready to print.");
-        MHBilling.printInvoice(invoice);
-        showPage("sales");
-      } catch (error) {
-        alert(error.message);
+        const list = pageRoot.querySelector("#mh-products-list");
+        const search = pageRoot.querySelector("#mh-search");
+
+        function drawProducts() {
+          const query = search.value.trim().toLowerCase();
+
+          const products = getProducts().filter(p =>
+            String(p.name).toLowerCase().includes(query) ||
+            String(p.code || "").toLowerCase().includes(query)
+          );
+
+          list.innerHTML = products.map(p => `
+            <tr>
+              <td>${esc(p.name)}</td>
+              <td>${esc(p.category)}</td>
+              <td>${money(p.costPrice)}</td>
+              <td>${money(p.sellingPrice)}</td>
+              <td>${Number(p.stock)}</td>
+              <td>
+                <button type="button" data-stock="${esc(p.id)}">Update stock</button>
+                <button type="button" data-price="${esc(p.id)}">Edit price</button>
+                <button type="button" data-delete="${esc(p.id)}">Delete</button>
+              </td>
+            </tr>
+          `).join("") || '<tr><td colspan="6">No products yet.</td></tr>';
+        }
+
+        search.addEventListener("input", drawProducts);
+
+        list.addEventListener("click", event => {
+          const button = event.target.closest("button");
+          if (!button) return;
+
+          const id = button.dataset.stock || button.dataset.price ||
+            button.dataset.delete;
+
+          const products = getProducts();
+          const product = products.find(p => String(p.id) === id);
+          if (!product) return;
+
+          if (button.dataset.stock) {
+            const value = prompt("Enter the new total stock quantity:", product.stock);
+            if (value === null) return;
+
+            if (value.trim() === "" || !Number.isInteger(Number(value)) ||
+                Number(value) < 0) {
+              return showMessage("Enter a valid whole number of 0 or more.");
+            }
+
+            product.stock = Number(value);
+          } else if (button.dataset.price) {
+            const value = prompt("Enter the new selling price:", product.sellingPrice);
+            if (value === null) return;
+
+            if (value.trim() === "" || !Number.isFinite(Number(value)) ||
+                Number(value) < 0) {
+              return showMessage("Enter a valid price.");
+            }
+
+            product.sellingPrice = Number(value);
+          } else if (button.dataset.delete) {
+            if (!confirm("Delete " + product.name + "?")) return;
+            saveProducts(products.filter(p => String(p.id) !== id));
+            drawProducts();
+            return;
+          }
+
+          saveProducts(products);
+          drawProducts();
+        });
+
+        drawProducts();
       }
-    });
 
-    drawCart();
-  }
+      if (page === "billing") {
+        const products = getProducts();
 
-  function renderSales() {
-    const sales = MHDB.getSales();
+        pageRoot.innerHTML = `
+          <h2>New Bill</h2>
+          <div class="mh-box">
+            <form id="mh-billing-form">
+              <label>Customer name
+                <input name="customer" placeholder="Walk-in Customer">
+              </label>
+              <label>Product
+                <select name="product" required>
+                  ${products.filter(p => p.stock > 0).map(p =>
+                    `<option value="${esc(p.id)}">${esc(p.name)} — ${money(p.sellingPrice)} (stock ${p.stock})</option>`
+                  ).join("")}
+                </select>
+              </label>
+              <label>Quantity
+                <input name="quantity" type="number" min="1" step="1" value="1" required>
+              </label>
+              <label>Discount (₹)
+                <input name="discount" type="number" min="0" step="0.01" value="0">
+              </label>
+              <label>Payment method
+                <select name="payment">
+                  <option>Cash</option><option>UPI</option>
+                  <option>Card</option><option>Other</option>
+                </select>
+              </label>
+              <button class="mh-active" type="submit">Save bill and print</button>
+            </form>
+          </div>
+        `;
 
-    content.innerHTML = `
-      <h2>Sales History</h2>
-      <div class="mh-panel">
-        <label>Search bill number or customer
-          <input id="mh-sales-search" placeholder="Search sales">
-        </label>
-        <div class="mh-table-wrap">
-          <table>
-            <thead><tr><th>Bill No.</th><th>Date</th>
-              <th>Customer</th><th>Items</th><th>Payment</th>
-              <th>Total</th><th>Action</th></tr></thead>
-            <tbody id="mh-sales-rows"></tbody>
-          </table>
-        </div>
-      </div>
-    `;
+        pageRoot.querySelector("#mh-billing-form").addEventListener(
+          "submit", event => {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(event.currentTarget));
+            const allProducts = getProducts();
+            const product = allProducts.find(p => p.id === data.product);
+            const quantity = Number(data.quantity);
+            const discount = Number(data.discount);
 
-    const rows = content.querySelector("#mh-sales-rows");
-    const search = content.querySelector("#mh-sales-search");
+            if (!product || !Number.isInteger(quantity) || quantity < 1 ||
+                quantity > product.stock) {
+              return showMessage("Choose a product and a valid available quantity.");
+            }
 
-    function drawSales() {
-      const query = search.value.toLowerCase();
-      const filtered = MHDB.getSales().filter(s =>
-        s.billNo.toLowerCase().includes(query) ||
-        s.customerName.toLowerCase().includes(query)
-      );
+            const subtotal = quantity * Number(product.sellingPrice);
+            if (!Number.isFinite(discount) || discount < 0 || discount > subtotal) {
+              return showMessage("Enter a valid discount.");
+            }
 
-      rows.innerHTML = filtered.map(s => `
-        <tr>
-          <td>${escapeHTML(s.billNo)}</td>
-          <td>${escapeHTML(new Date(s.date).toLocaleString("en-IN"))}</td>
-          <td>${escapeHTML(s.customerName)}</td>
-          <td>${s.items.reduce((sum, item) => sum + item.quantity, 0)}</td>
-          <td>${escapeHTML(s.paymentMethod)}</td>
-          <td>${money(s.total)}</td>
-          <td><button data-reprint="${s.id}">Reprint</button></td>
-        </tr>
-      `).join("") || '<tr><td colspan="7">No sales found.</td></tr>';
+            const invoice = {
+              id: crypto.randomUUID(),
+              billNo: "MH-" + Date.now(),
+              date: new Date().toISOString(),
+              customerName: data.customer.trim() || "Walk-in Customer",
+              customerPhone: "",
+              items: [{
+                productId: product.id,
+                name: product.name,
+                quantity,
+                price: Number(product.sellingPrice),
+                amount: subtotal
+              }],
+              subtotal,
+              discount,
+              total: subtotal - discount,
+              paymentMethod: data.payment
+            };
+
+            product.stock -= quantity;
+            saveProducts(allProducts);
+            saveSales([invoice, ...getSales()]);
+
+            if (window.MHBilling &&
+                typeof window.MHBilling.printInvoice === "function") {
+              try {
+                window.MHBilling.printInvoice(invoice);
+              } catch (error) {
+                showMessage("Bill saved. Printing failed: " + error.message);
+              }
+            } else {
+              showMessage("Bill saved, but billing.js is not loaded. Check your script tags.");
+            }
+
+            render("sales");
+          }
+        );
+      }
+
+      if (page === "sales") {
+        pageRoot.innerHTML = `
+          <h2>Sales History</h2>
+          <div class="mh-box">
+            <label>Search bills
+              <input id="mh-sales-search" placeholder="Bill number or customer">
+            </label>
+            <div class="mh-table-wrap">
+              <table>
+                <thead><tr><th>Bill number</th><th>Date</th>
+                  <th>Customer</th><th>Total</th></tr></thead>
+                <tbody id="mh-sales-list"></tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        const search = pageRoot.querySelector("#mh-sales-search");
+        const list = pageRoot.querySelector("#mh-sales-list");
+
+        function drawSales() {
+          const query = search.value.toLowerCase();
+          list.innerHTML = getSales().filter(s =>
+            String(s.billNo).toLowerCase().includes(query) ||
+            String(s.customerName).toLowerCase().includes(query)
+          ).map(s => `
+            <tr>
+              <td>${esc(s.billNo)}</td>
+              <td>${esc(new Date(s.date).toLocaleString("en-IN"))}</td>
+              <td>${esc(s.customerName)}</td>
+              <td>${money(s.total)}</td>
+            </tr>
+          `).join("") || '<tr><td colspan="4">No bills found.</td></tr>';
+        }
+
+        search.addEventListener("input", drawSales);
+        drawSales();
+      }
     }
 
-    search.addEventListener("input", drawSales);
-
-    rows.addEventListener("click", event => {
-      const button = event.target.closest("[data-reprint]");
-      if (!button) return;
-      const invoice = MHDB.getSales().find(s => s.id === button.dataset.reprint);
-      if (invoice) MHBilling.printInvoice(invoice);
-    });
-
-    drawSales();
+    render("dashboard");
   }
 
-  root.querySelectorAll("[data-page]").forEach(button => {
-    button.addEventListener("click", () => showPage(button.dataset.page));
-  });
-
-  root.querySelector("#mh-export").addEventListener("click", () => {
-    const backup = {
-      exportedAt: new Date().toISOString(),
-      products: MHDB.getProducts(),
-      sales: MHDB.getSales()
-    };
-
-    const blob = new Blob([JSON.stringify(backup, null, 2)], {
-      type: "application/json"
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "mh-collection-backup.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  });
-
-  showPage("dashboard");
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startApp);
+  } else {
+    startApp();
+  }
 })();
